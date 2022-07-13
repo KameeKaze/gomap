@@ -9,8 +9,8 @@ import(
 )
 
 type Scanner struct {
-	Ip   string `required:"true"`
-	Port int    `required:"true"`
+	Ip   string 
+	Port int    
 	
 }
 
@@ -25,6 +25,11 @@ func main(){
 	scanner := Scanner{}
 	scanner.Setup()
 	flag.Parse()
+
+	// validate ip address
+	if validateIP(scanner.Ip){
+		fmt.Println("Invalid ip address")
+	}
 
 	//scan port
 	open := ScanPortTCP(scanner.Ip, scanner.Port)
@@ -42,4 +47,8 @@ func ScanPortTCP(ip string, port int,) bool {
 	}
 	defer conn.Close()
 	return true
+}
+
+func validateIP(ip string) bool {
+	return net.ParseIP(ip) == nil
 }

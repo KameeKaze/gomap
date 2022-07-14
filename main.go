@@ -6,11 +6,12 @@ import (
 	"net"
 	"strconv"
 	"time"
+	"strings"
 )
 
 type Scanner struct {
 	Ip    string
-	Ports int
+	Ports string
 }
 
 type Port struct {
@@ -20,9 +21,10 @@ type Port struct {
 
 // parse flags from command-line
 func (s *Scanner) Setup() {
-	flag.StringVar(&s.Ip, "i", "", "ip address")
-	flag.IntVar(&s.Ports, "p", 0, "port to scan")
+	flag.StringVar(&s.Ip, "i", "", "IP address")
+	flag.StringVar(&s.Ports, "p", "", "Ports \nexample: -p 22,80,443")
 }
+
 
 func main() {
 	//setup scanner
@@ -37,7 +39,15 @@ func main() {
 	}
 
 	//some testing ports
-	ports := []int{22, 80, 3306}
+	var ports []int
+	for _, port := range strings.Split(scanner.Ports, ",") {
+		p, err := strconv.Atoi(port)
+		if err != nil{
+			fmt.Println("Invalid ports")
+			return
+		}
+		ports = append(ports, p)
+	}
 
 	//receive from a channel wether the port is open
 	open := ScanPortsTCP(scanner.Ip, ports)

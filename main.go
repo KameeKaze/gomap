@@ -32,13 +32,21 @@ func main() {
 	scanner.Setup()
 	flag.Parse()
 
+	// convert domain into ip address
+	var err error
+	scanner.Ip, err = domainToIP(scanner.Ip)
+	if err != nil{
+		fmt.Println("Invalid ip address")
+		return
+	}
+	
 	// validate ip address
 	if validateIP(scanner.Ip) {
 		fmt.Println("Invalid ip address")
 		return
 	}
 
-	//some testing ports
+	//create int slice from ports
 	var ports []int
 	for _, port := range strings.Split(scanner.Ports, ",") {
 		p, err := strconv.Atoi(port)
@@ -50,6 +58,7 @@ func main() {
 	}
 
 	//receive from a channel wether the port is open
+	fmt.Println("Scanning ports for", scanner.Ip)
 	open := ScanPortsTCP(scanner.Ip, ports)
 	for p := range open {
 		fmt.Println(p.Number, p.Open)
@@ -83,4 +92,10 @@ func ScanPortsTCP(ip string, ports []int) <-chan Port {
 
 func validateIP(ip string) bool {
 	return net.ParseIP(ip) == nil
+}
+
+	//Convert domain into ip adress
+func domainToIP(domain string) (string, error) {
+	ip, err := net.LookupIP(domain)
+	return ip[0].String(), err
 }

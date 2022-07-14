@@ -30,7 +30,7 @@ const(
 func (s *Scanner) Setup() {
 	flag.StringVar(&s.Ip, "i", "", "IP address")
 	flag.StringVar(&s.Ports, "p", "", "Ports \nexample: -p 22,80,443")
-	flag.IntVar(&s.Timeout, "t", 500, "Set the timeout in milliseconds")
+	flag.IntVar(&s.Timeout, "t", 500, "Set the timeout in milliseconds\n Default is 500")
 }
 
 
@@ -39,18 +39,18 @@ func main() {
 	scanner := Scanner{}
 	scanner.Setup()
 	flag.Parse()
+	
+	//check if ip is set
+	if scanner.Ip == ""{
+		fmt.Println("Set an IP address with -i")
+		return
+	}
 
-	// convert domain into ip address
+	// resolve domain to ip && error if unreachable
 	var err error
 	scanner.Ip, err = domainToIP(scanner.Ip)
 	if err != nil{
-		fmt.Println("Invalid ip address")
-		return
-	}
-	
-	// validate ip address
-	if validateIP(scanner.Ip) {
-		fmt.Println("Invalid ip address")
+		fmt.Printf("Failed to resolve '%s'\n", scanner.Ip)
 		return
 	}
 
@@ -111,7 +111,7 @@ func validateIP(ip string) bool {
 func domainToIP(domain string) (string, error) {
 	ip, err := net.LookupIP(domain)
 	if err != nil{
-		return "", err
+		return domain, err
 	}
 	return ip[0].String(), nil
 }

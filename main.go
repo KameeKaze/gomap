@@ -10,8 +10,9 @@ import (
 )
 
 type Scanner struct {
-	Ip    string
-	Ports string
+	Ip      string
+	Ports   string
+	Timeout int
 }
 
 type Port struct {
@@ -29,6 +30,7 @@ const(
 func (s *Scanner) Setup() {
 	flag.StringVar(&s.Ip, "i", "", "IP address")
 	flag.StringVar(&s.Ports, "p", "", "Ports \nexample: -p 22,80,443")
+	flag.IntVar(&s.Timeout, "t", 500, "Set the timeout in milliseconds")
 }
 
 
@@ -65,7 +67,7 @@ func main() {
 
 	//receive from a channel wether the port is open
 	fmt.Println("Scanning ports for", scanner.Ip)
-	open := ScanPortsTCP(scanner.Ip, ports)
+	open := ScanPortsTCP(scanner.Ip, ports, scanner.Timeout)
 	for p := range open {
 		// red if closed, green if port is open
 		switch p.Open {
@@ -76,7 +78,7 @@ func main() {
 	}
 }
 
-func ScanPortsTCP(ip string, ports []int) <-chan Port {
+func ScanPortsTCP(ip string, ports []int, timeout int) <-chan Port {
 	open := make(chan Port)
 
 	go func() {
@@ -86,7 +88,7 @@ func ScanPortsTCP(ip string, ports []int) <-chan Port {
 			address := ip + ":" + strconv.Itoa(port)
 
 			//check if port open
-			conn, err := net.DialTimeout("tcp", address, time.Second*2)
+			conn, err := net.DialTimeout("tcp", address, time.Millisecond * time.Duration(timeout))
 			switch err {
 			case nil: //open
 				defer conn.Close()
@@ -108,5 +110,8 @@ func validateIP(ip string) bool {
 	//Convert domain into ip adress
 func domainToIP(domain string) (string, error) {
 	ip, err := net.LookupIP(domain)
-	return ip[0].String(), err
+	if err != nil{
+		return "", err
+	}
+	return ip[0].String(), nil
 }

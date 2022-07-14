@@ -19,6 +19,12 @@ type Port struct {
 	Open   bool
 }
 
+const(
+
+    colorRed   = "\033[31m"
+    colorGreen = "\033[32m"
+    colorWhite = "\033[37m"
+)
 // parse flags from command-line
 func (s *Scanner) Setup() {
 	flag.StringVar(&s.Ip, "i", "", "IP address")
@@ -61,7 +67,12 @@ func main() {
 	fmt.Println("Scanning ports for", scanner.Ip)
 	open := ScanPortsTCP(scanner.Ip, ports)
 	for p := range open {
-		fmt.Println(p.Number, p.Open)
+		// red if closed, green if port is open
+		switch p.Open {
+		case true: fmt.Println(p.Number, string(colorGreen), "Open",string(colorWhite))
+		case false: fmt.Println(p.Number, string(colorRed), "Closed",string(colorWhite))
+		}
+		
 	}
 }
 

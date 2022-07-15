@@ -4,8 +4,3 @@
 
 ### Current usage
 `go run main.go -i 127.0.0.1 -p 22,80 -t 250` 
-
-TODO
-* TCP/UDP scan
-* Output to file
-* Format output

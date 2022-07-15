@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"net"
 	"strconv"
-	"time"
 	"strings"
+	"time"
 )
 
 type Scanner struct {
@@ -21,18 +21,18 @@ type Port struct {
 }
 
 //Terminal colors
-const(
-    colorRed   = string("\033[31m")
-    colorGreen = string("\033[32m")
+const (
+	colorRed   = string("\033[31m")
+	colorGreen = string("\033[32m")
 	colorBlue  = string("\033[34m")
-    colorWhite = string("\033[37m")
+	colorWhite = string("\033[37m")
 )
 
 // parse flags from command-line
 func (s *Scanner) Setup() {
-	flag.StringVar(&s.Ip, "i", "", "IP address")
-	flag.StringVar(&s.Ports, "p", "", "Ports \nexample: -p 22,80,443")
-	flag.IntVar(&s.Timeout, "t", 500, "Set the timeout in milliseconds\n")
+	flag.StringVar(&s.Ip, "i", "", "IP address or domain")
+	flag.StringVar(&s.Ports, "p", "", "Ports separated with comma \nexample: -p 22,80,443")
+	flag.IntVar(&s.Timeout, "t", 500, "Set the timeout in milliseconds")
 }
 
 func main() {
@@ -42,7 +42,7 @@ func main() {
 	flag.Parse()
 
 	//check if ip is set
-	if scanner.Ip == ""{
+	if scanner.Ip == "" {
 		fmt.Println("Set an IP address with -i")
 		return
 	}
@@ -50,8 +50,8 @@ func main() {
 	// resolve domain to ip && error if unreachable
 	var err error
 	scanner.Ip, err = domainToIP(scanner.Ip)
-	if err != nil{
-		fmt.Printf("Failed to resolve '%s'\n", scanner.Ip)
+	if err != nil {
+		fmt.Printf("%sFailed to resolve '%s'%s\n", colorRed, scanner.Ip, colorWhite)
 		return
 	}
 
@@ -59,37 +59,36 @@ func main() {
 	var ports []int
 	for _, port := range strings.Split(scanner.Ports, ",") {
 		p, err := strconv.Atoi(port)
-		if err != nil{
-			fmt.Println("Invalid ports")
+		if err != nil {
+			fmt.Printf("%sInvalid ports%s\n", colorRed, colorWhite)
 			return
 		}
 		//check if port in range
 		if p > 65535 || p < 0 {
-			fmt.Printf("Port %d is out of range\n",p)
+			fmt.Printf("%sPort %d is out of range%s\n", colorRed, p, colorWhite)
 			return
 		}
 		ports = append(ports, p)
 	}
 
-
 	//receive from a channel wether the port is open
 	fmt.Println("Scanning ports for", scanner.Ip)
-	fmt.Printf("%sPORT   STATUS%s\n",colorBlue,colorWhite)
-	open := ScanPortsTCP(scanner.Ip, ports, scanner.Timeout)
+	fmt.Printf("%sPORT   STATUS%s\n", colorBlue, colorWhite)
+	open := scanPortsTCP(scanner.Ip, ports, scanner.Timeout)
 	for p := range open {
 		// red if closed, green if port is open
-		switch p.Open {									  // format with spaces
-		case true: fmt.Printf("%d %s%sOpen%s\n",p.Number, strings.Repeat(" ", 6-len(strconv.Itoa(p.Number))), colorGreen, colorWhite)
-		
-		case false: fmt.Printf("%d %s%sClosed%s\n",p.Number, strings.Repeat(" ", 6-len(strconv.Itoa(p.Number))), colorRed, colorWhite)
+		switch p.Open { // format with spaces
+		case true:
+			fmt.Printf("%d %s%sOpen%s\n", p.Number, strings.Repeat(" ", 6-len(strconv.Itoa(p.Number))), colorGreen, colorWhite)
+		case false:
+			fmt.Printf("%d %s%sClosed%s\n", p.Number, strings.Repeat(" ", 6-len(strconv.Itoa(p.Number))), colorRed, colorWhite)
 		}
-		
+
 	}
 }
 
-func ScanPortsTCP(ip string, ports []int, timeout int) <-chan Port {
+func scanPortsTCP(ip string, ports []int, timeout int) <-chan Port {
 	open := make(chan Port)
-
 	go func() {
 		//iterate over ports
 		for _, port := range ports {
@@ -97,7 +96,7 @@ func ScanPortsTCP(ip string, ports []int, timeout int) <-chan Port {
 			address := ip + ":" + strconv.Itoa(port)
 
 			//check if port open
-			conn, err := net.DialTimeout("tcp", address, time.Millisecond * time.Duration(timeout))
+			conn, err := net.DialTimeout("tcp", address, time.Millisecond*time.Duration(timeout))
 			switch err {
 			case nil: //open
 				defer conn.Close()
@@ -112,14 +111,10 @@ func ScanPortsTCP(ip string, ports []int, timeout int) <-chan Port {
 	return open
 }
 
-func validateIP(ip string) bool {
-	return net.ParseIP(ip) == nil
-}
-
-	//Convert domain into ip adress
+//Convert domain into ip adress
 func domainToIP(domain string) (string, error) {
 	ip, err := net.LookupIP(domain)
-	if err != nil{
+	if err != nil {
 		return domain, err
 	}
 	return ip[0].String(), nil

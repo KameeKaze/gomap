@@ -6,8 +6,6 @@
 `go run main.go -i 127.0.0.1 -p 22,80`
 
 TODO
-* Check user input 
-* Colorful output
 * TCP/UDP scan
 * Output to file
 * Format output

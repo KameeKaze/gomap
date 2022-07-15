@@ -20,18 +20,20 @@ type Port struct {
 	Open   bool
 }
 
+//Terminal colors
 const(
     colorRed   = string("\033[31m")
     colorGreen = string("\033[32m")
+	colorBlue  = string("\033[34m")
     colorWhite = string("\033[37m")
 )
+
 // parse flags from command-line
 func (s *Scanner) Setup() {
 	flag.StringVar(&s.Ip, "i", "", "IP address")
 	flag.StringVar(&s.Ports, "p", "", "Ports \nexample: -p 22,80,443")
-	flag.IntVar(&s.Timeout, "t", 500, "Set the timeout in milliseconds\n Default is 500")
+	flag.IntVar(&s.Timeout, "t", 500, "Set the timeout in milliseconds\n")
 }
-
 
 func main() {
 	//setup scanner
@@ -63,7 +65,7 @@ func main() {
 		}
 		//check if port in range
 		if p > 65535 || p < 0 {
-			fmt.Printf("Invalid port %d\n",p)
+			fmt.Printf("Port %d is out of range\n",p)
 			return
 		}
 		ports = append(ports, p)
@@ -72,6 +74,7 @@ func main() {
 
 	//receive from a channel wether the port is open
 	fmt.Println("Scanning ports for", scanner.Ip)
+	fmt.Printf("%sPORT   STATUS%s\n",colorBlue,colorWhite)
 	open := ScanPortsTCP(scanner.Ip, ports, scanner.Timeout)
 	for p := range open {
 		// red if closed, green if port is open

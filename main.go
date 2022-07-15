@@ -21,10 +21,9 @@ type Port struct {
 }
 
 const(
-
-    colorRed   = "\033[31m"
-    colorGreen = "\033[32m"
-    colorWhite = "\033[37m"
+    colorRed   = string("\033[31m")
+    colorGreen = string("\033[32m")
+    colorWhite = string("\033[37m")
 )
 // parse flags from command-line
 func (s *Scanner) Setup() {
@@ -39,7 +38,7 @@ func main() {
 	scanner := Scanner{}
 	scanner.Setup()
 	flag.Parse()
-	
+
 	//check if ip is set
 	if scanner.Ip == ""{
 		fmt.Println("Set an IP address with -i")
@@ -62,17 +61,24 @@ func main() {
 			fmt.Println("Invalid ports")
 			return
 		}
+		//check if port in range
+		if p > 65535 || p < 0 {
+			fmt.Printf("Invalid port %d\n",p)
+			return
+		}
 		ports = append(ports, p)
 	}
+
 
 	//receive from a channel wether the port is open
 	fmt.Println("Scanning ports for", scanner.Ip)
 	open := ScanPortsTCP(scanner.Ip, ports, scanner.Timeout)
 	for p := range open {
 		// red if closed, green if port is open
-		switch p.Open {
-		case true: fmt.Println(p.Number, string(colorGreen), "Open",string(colorWhite))
-		case false: fmt.Println(p.Number, string(colorRed), "Closed",string(colorWhite))
+		switch p.Open {									  // format with spaces
+		case true: fmt.Printf("%d %s%sOpen%s\n",p.Number, strings.Repeat(" ", 6-len(strconv.Itoa(p.Number))), colorGreen, colorWhite)
+		
+		case false: fmt.Printf("%d %s%sClosed%s\n",p.Number, strings.Repeat(" ", 6-len(strconv.Itoa(p.Number))), colorRed, colorWhite)
 		}
 		
 	}

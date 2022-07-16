@@ -7,17 +7,13 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"sync"
 )
 
 type Scanner struct {
 	Ip      string
 	Ports   string
 	Timeout int
-}
-
-type Port struct {
-	Number int
-	Open   bool
 }
 
 //Terminal colors
@@ -34,6 +30,9 @@ func (s *Scanner) Setup() {
 	flag.StringVar(&s.Ports, "p", "", "Ports separated with comma \nexample: -p 22,80,443")
 	flag.IntVar(&s.Timeout, "t", 500, "Set the timeout in milliseconds")
 }
+
+//create waitgroup
+var wg sync.WaitGroup
 
 func main() {
 	//setup scanner
@@ -74,41 +73,32 @@ func main() {
 	//receive from a channel wether the port is open
 	fmt.Println("Scanning ports for", scanner.Ip)
 	fmt.Printf("%sPORT   STATUS%s\n", colorBlue, colorWhite)
-	open := scanPortsTCP(scanner.Ip, ports, scanner.Timeout)
-	for p := range open {
-		// red if closed, green if port is open
-		switch p.Open { // format with spaces
-		case true:
-			fmt.Printf("%d %s%sOpen%s\n", p.Number, strings.Repeat(" ", 6-len(strconv.Itoa(p.Number))), colorGreen, colorWhite)
-		case false:
-			fmt.Printf("%d %s%sClosed%s\n", p.Number, strings.Repeat(" ", 6-len(strconv.Itoa(p.Number))), colorRed, colorWhite)
-		}
 
+	//wait for all ports to be scanned
+	wg.Add(len(ports))
+	for _, port := range ports{
+		go scanPortTCP(scanner.Ip, port, scanner.Timeout)
 	}
+	//wait until all ports scanned
+	wg.Wait()
+
 }
 
-func scanPortsTCP(ip string, ports []int, timeout int) <-chan Port {
-	open := make(chan Port)
-	go func() {
-		//iterate over ports
-		for _, port := range ports {
-			//parse address
-			address := ip + ":" + strconv.Itoa(port)
-
-			//check if port open
-			conn, err := net.DialTimeout("tcp", address, time.Millisecond*time.Duration(timeout))
-			switch err {
-			case nil: //open
-				defer conn.Close()
-				open <- Port{Number: port, Open: true}
-			default: // closed
-				open <- Port{Number: port, Open: false}
-			}
-		}
-		//close channel
-		close(open)
-	}()
-	return open
+func scanPortTCP(ip string, port, timeout int){
+	defer wg.Done()
+	//parse address
+	address := ip + ":" + strconv.Itoa(port)
+	//check if port is open
+	conn, err := net.DialTimeout("tcp", address, time.Millisecond*time.Duration(timeout))
+	switch err {
+	case nil: //open
+		defer conn.Close()
+		fmt.Printf("%d %s%sOpen%s\n", port, strings.Repeat(" ", 6-len(strconv.Itoa(port))), colorGreen, colorWhite)
+		return
+	default: // closed
+		fmt.Printf("%d %s%sClosed%s\n", port, strings.Repeat(" ", 6-len(strconv.Itoa(port))), colorRed, colorWhite)
+		return
+	}
 }
 
 //Convert domain into ip adress
